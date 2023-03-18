@@ -1,5 +1,5 @@
 import { Client } from "@notionhq/client";
-import { AppendParameters, CreateParameters, TravelPlan, UpdateParameters } from "./@types";
+import { AppendParameters, Block, CreateParameters, TravelPlan, UpdateBlockChildrenParameters, UpdateBlockParameters, UpdateTitleParameters } from "./@types";
 
 const NOTION_NAME_ID = 'title'
 const NOTION_PLACES_ID = '6BZi'
@@ -49,8 +49,7 @@ export const getDocumentAsync = async (pageId: string) => {
 }
 
 export const getDocumentChildrenAsync = async (pageId: string) => {
-  const children = await notion.blocks.children.list({ block_id: pageId })
-  return children
+  return await listDocumentChildren(pageId)
 }
 
 export const createDocumentAsync = async (parameters: CreateParameters) => {
@@ -94,7 +93,7 @@ export const appendContentAsync = async (appendParameters: AppendParameters) => 
   return document
 }
 
-export const updateDocumentAsync = async (updateParameters: UpdateParameters) => {
+export const updateDocumentTitleAsync = async (updateParameters: UpdateTitleParameters) => {
   const response = await notion.pages.update({
     page_id: updateParameters.documentId,
     properties: {
@@ -112,9 +111,63 @@ export const updateDocumentAsync = async (updateParameters: UpdateParameters) =>
   return response
 }
 
+export const updateBlockAsync = async (updateParameters: UpdateBlockChildrenParameters) => {
+  try {
+    return await updateBlockAlsoWithCreate(updateParameters.pageId, updateParameters.children)
+    // await updateBlockChildren(updateParameters.pageId, updateParameters.children)
+  } catch {
+    console.log('We have some error here');
+
+  }
+}
+
 const getNotionDatabaseConnection = () => {
   const identfier = process.env.NOTION_DATABASE_ID
 
   if (identfier === undefined) throw new Error('Database id not found!')
   return identfier
 }
+
+const updateBlockChildren = async (pageId: string, blocks: Block[]) => {
+  const blockWithChildren = await listDocumentChildren(pageId)
+  const operations = [];
+  for (const block of blocks) {
+    const update = blockWithChildren.results.find((item) => block.id === item.id);
+
+    update
+      ? operations.push(updateBlockAlsoWithCreate(pageId, block))
+      : operations.push(appendBlock(pageId, block));
+  }
+
+  await Promise.all(operations);
+}
+
+const listDocumentChildren = async (blockId: string) => {
+  return await notion.blocks.children.list({ block_id: blockId })
+}
+
+const updateBlockAlsoWithCreate = async (pageId: string, block: Block) => {
+  const blocks = await listDocumentChildren(pageId)
+  const update = blocks.results.find(x => x.id === block.id)
+
+  return update
+    ? await notion.blocks.update({ block_id: block.id, paragraph: block.paragraph })
+    : await appendBlock(pageId, block)
+
+
+}
+
+const appendBlock = async (pageId: string, block: Block | undefined) => {
+  if (block === undefined) return
+
+  return await notion.blocks.children.append({
+    block_id: pageId,
+    children: [block]
+  })
+}
+
+const retriveBlock = async (blockId: string) => await notion.blocks.retrieve({ block_id: blockId })
+
+
+
+

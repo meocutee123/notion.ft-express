@@ -5,7 +5,7 @@ import express, { Express, Request, Response } from 'express';
 const cors = require('cors');
 
 
-import { appendContentAsync, createDocumentAsync, createTravelPlanAsync, getDatabaseAsync, getDocumentAsync, getDocumentChildrenAsync, updateDocumentAsync } from './src/notion';
+import { appendContentAsync, createDocumentAsync, createTravelPlanAsync, getDatabaseAsync, getDocumentAsync, getDocumentChildrenAsync, updateBlockAsync, updateDocumentTitleAsync } from './src/notion';
 
 const port = process.env.PORT;
 
@@ -77,7 +77,7 @@ app.post('/api/v1/page/create', async (request: Request, response: Response) => 
   })
 
   response.send({ id: creationResult.id, title: creationResult.properties.title.title[0].plain_text })
-})
+}) 
 
 //---------Append content------------
 app.post('/api/v1/page/append', async (request: Request, response: Response) => {
@@ -86,9 +86,8 @@ app.post('/api/v1/page/append', async (request: Request, response: Response) => 
 })
 
 //---------Update document------------
-app.put('/api/v1/page/update', async (request: Request, response: Response) => {
-  const document = await updateDocumentAsync(request.body)
-  console.log('http://[::1]:8001/documents/' + request.body.documentId) 
+app.put('/api/v1/page/update-title', async (request: Request, response: Response) => {
+  const document = await updateDocumentTitleAsync(request.body)
   await fetch('http://[::1]:8001/documents/' + request.body.documentId, {
     method: 'PUT',
     headers: { 
@@ -99,6 +98,12 @@ app.put('/api/v1/page/update', async (request: Request, response: Response) => {
   })
   response.send(document)
 })
+
+app.put('/api/v1/page/save-transaction', async (request: Request, response: Response) => {
+  const block = await updateBlockAsync(request.body)
+  response.send(block) 
+})
+ 
 
 app.listen(port, () => {
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`);

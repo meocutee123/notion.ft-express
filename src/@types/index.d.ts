@@ -35,7 +35,30 @@ export type AppendParameters = {
   content: string[]
 }
 
-export type UpdateParameters = {
+export type UpdateTitleParameters = {
   documentId: string,
   title: string
+}
+
+export type UpdateBlockChildrenParameters = {
+  pageId: string,
+  children: Block
+}
+
+export type UpdateBlockParameters = {
+
+}
+
+type Block = {
+  id: string,
+  paragraph: BlockContent
+}
+
+type BlockContent = {
+  rich_text: [
+    {
+      type: 'text',
+      text: { content: string }
+    }
+  ]
 }
